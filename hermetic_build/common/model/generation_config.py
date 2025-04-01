@@ -36,7 +36,7 @@ class GenerationConfig:
     def __init__(
         self,
         googleapis_commitish: str,
-        libraries: list[LibraryConfig],
+        libraries: dict[str, LibraryConfig],
         gapic_generator_version: Optional[str] = None,
         libraries_bom_version: Optional[str] = None,
     ):
@@ -77,6 +77,23 @@ class GenerationConfig:
                     break
         return self.__contains_common_protos
 
+    def to_dict(self):
+        return {
+            "gapic_generator_version": self.gapic_generator_version,
+            "googleapis_commitish": self.googleapis_commitish,
+            "libraries_bom_version": self.libraries_bom_version,
+            "libraries": [library.to_dict() for _, library in self.libraries.items()],
+        }
+
+    def write_object_to_yaml(self, file_path):
+        """Writes a Python object to a YAML file."""
+        try:
+            with open(file_path, "w") as file:
+                yaml.dump(self.to_dict(), file, indent=2, sort_keys=False)
+            print(f"Object written to {file_path}")
+        except Exception as e:
+            print(f"Error writing to YAML file: {e}")
+
     @staticmethod
     def __set_generator_version(gapic_generator_version: Optional[str]) -> str:
         if gapic_generator_version is not None:
@@ -94,7 +111,7 @@ class GenerationConfig:
 
     def __validate(self) -> None:
         seen_library_names = dict()
-        for library in self.libraries:
+        for _, library in self.libraries.items():
             library_name = library.get_library_name()
             if library_name in seen_library_names:
                 raise ValueError(
@@ -119,7 +136,7 @@ class GenerationConfig:
         if not libraries:
             raise ValueError(f"Library is None in {path_to_yaml}.")
 
-        parsed_libraries = list()
+        parsed_libraries = dict()
         for library in libraries:
             gapics = _required(library, "GAPICs")
 
@@ -161,7 +178,7 @@ class GenerationConfig:
                 min_java_version=_optional(library, "min_java_version", None),
                 transport=_optional(library, "transport", None),
             )
-            parsed_libraries.append(new_library)
+            parsed_libraries[_required(library, "api_shortname")] = new_library
 
         parsed_config = GenerationConfig(
             googleapis_commitish=_required(
