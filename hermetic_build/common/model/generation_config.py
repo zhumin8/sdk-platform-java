@@ -148,8 +148,10 @@ class GenerationConfig:
                 new_gapic = GapicConfig(proto_path)
                 parsed_gapics.append(new_gapic)
 
+            library_name = _optional(library, "library_name", None)
+            api_shortname = _required(library, "api_shortname")
             new_library = LibraryConfig(
-                api_shortname=_required(library, "api_shortname"),
+                api_shortname=api_shortname,
                 api_description=_required(library, "api_description"),
                 name_pretty=_required(library, "name_pretty"),
                 product_documentation=_required(library, "product_documentation"),
@@ -166,7 +168,7 @@ class GenerationConfig:
                 googleapis_commitish=_optional(library, "googleapis_commitish", None),
                 group_id=_optional(library, "group_id", "com.google.cloud"),
                 issue_tracker=_optional(library, "issue_tracker", None),
-                library_name=_optional(library, "library_name", None),
+                library_name=library_name,
                 rest_documentation=_optional(library, "rest_documentation", None),
                 rpc_documentation=_optional(library, "rpc_documentation", None),
                 cloud_api=_optional(library, "cloud_api", True),
@@ -178,7 +180,8 @@ class GenerationConfig:
                 min_java_version=_optional(library, "min_java_version", None),
                 transport=_optional(library, "transport", None),
             )
-            parsed_libraries[_required(library, "api_shortname")] = new_library
+            library_key = api_shortname if library_name is None else library_name
+            parsed_libraries[library_key] = new_library
 
         parsed_config = GenerationConfig(
             googleapis_commitish=_required(
