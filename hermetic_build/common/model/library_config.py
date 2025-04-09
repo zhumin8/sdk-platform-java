@@ -17,7 +17,6 @@ from typing import Optional
 from common.model.gapic_config import GapicConfig
 from common.model.gapic_inputs import GapicInputs
 from common.model.owlbot_yaml_config import OwlbotYamlConfig
-from collections import OrderedDict
 
 
 MAVEN_COORDINATE_SEPARATOR = ":"

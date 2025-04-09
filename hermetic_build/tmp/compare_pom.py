@@ -2,6 +2,7 @@ import os
 import argparse
 import xml.etree.ElementTree as ET
 import difflib
+import shutil
 from typing import List, Optional, Dict
 
 # Constants for POM namespace
@@ -42,6 +43,11 @@ def get_dependencies(
             version=get_text(dep, "version"),
             scope=get_text(dep, "scope"),
         )
+        # # pick up here
+        # if type(dependencies_elem) == list:
+        #     loop_elem = dependencies_elem
+        # else:
+        #     loop_elem = dependencies_elem.findall("dependency", namespaces=POM_NS)
         for dep in dependencies_elem.findall("dependency", namespaces=POM_NS)
         if get_text(dep, "groupId")
         and get_text(dep, "artifactId")
@@ -192,10 +198,10 @@ class POM:
             if dm1 is None or dm2 is None:
                 return False
 
-            if ET.tostring(dm1, encoding="unicode", method="xml") != ET.tostring(
-                dm2, encoding="unicode", method="xml"
-            ):
-                return False
+            # if ET.tostring(dm1, encoding="unicode", method="xml") != ET.tostring(
+            #     dm2, encoding="unicode", method="xml"
+            # ):
+            #     return False
 
             deps1 = get_dependencies(dm1)
             deps2 = get_dependencies(dm2)
@@ -212,7 +218,7 @@ class POM:
             and compare_element_lists(self.profiles, other.profiles)
             and compare_element_lists(self.repositories, other.repositories)
             and compare_element_lists(self.pluginRepositories, other.pluginRepositories)
-            and compare_dependency_management(
+            and compare_dependency_lists(
                 self.dependencyManagement, other.dependencyManagement
             )
         )
@@ -243,7 +249,10 @@ def read_pom_as_object(file_path: str) -> Optional[POM]:
     try:
         tree = ET.parse(file_path)
         root = tree.getroot()
-
+        dependencyManagement_elem = root.find("dependencyManagement", namespaces=POM_NS)
+        if dependencyManagement_elem:
+            dependencyManagement_dependencies_elem = dependencyManagement_elem.find("dependencies", namespaces=POM_NS)
+            dependencyManagement_dependencies = get_dependencies(dependencyManagement_dependencies_elem)
         return POM(
             modelVersion=get_text(root, "modelVersion"),
             groupId=get_text(root, "groupId"),
@@ -255,7 +264,7 @@ def read_pom_as_object(file_path: str) -> Optional[POM]:
             profiles=root.findall("profiles", namespaces=POM_NS),
             repositories=root.findall("repositories", namespaces=POM_NS),
             pluginRepositories=root.findall("pluginRepositories", namespaces=POM_NS),
-            dependencyManagement=root.find("dependencyManagement", namespaces=POM_NS),
+            dependencyManagement=dependencyManagement_dependencies,
         )
 
     except FileNotFoundError:
@@ -277,6 +286,12 @@ def generate_pom_diff(config1: POM, config2: POM) -> List[str]:
     diff_lines = []
 
     def diff_field(key: str, value1, value2):
+        if value1 is None and value2 is None:
+            return  # Both are None, so no difference
+        if value1 is None or value2 is None:
+            diff_lines.append(f"- {key}: {value1}")
+            diff_lines.append(f"+ {key}: {value2}")
+            return
         if value1 != value2:
             if isinstance(value1, list):
                 diff_lines.append(f"- {key}: {[str(item) for item in value1]}")
@@ -314,13 +329,15 @@ def generate_pom_diff(config1: POM, config2: POM) -> List[str]:
             diff_lines.append(f"- dependencyManagement: {config1.dependencyManagement}")
             diff_lines.append(f"+ dependencyManagement: {config2.dependencyManagement}")
         else:
-            deps1 = get_dependencies(
-                config1.dependencyManagement.find("dependencies", namespaces=POM_NS)
-            )
-            deps2 = get_dependencies(
-                config2.dependencyManagement.find("dependencies", namespaces=POM_NS)
-            )
-            diff_field("dependencyManagement/dependencies", deps1, deps2)
+            # deps1 = get_dependencies(
+            #     config1.dependencyManagement
+            # )
+            # deps2 = get_dependencies(
+            #     config2.dependencyManagement
+            # )
+            diff_field("dependencyManagement/dependencies", 
+                       config1.dependencyManagement, 
+                       config2.dependencyManagement)
 
     return diff_lines
 
@@ -329,7 +346,9 @@ def generate_pom_diff(config1: POM, config2: POM) -> List[str]:
 
 
 def compare_pom_files_in_dirs(
-    input_dir: str, original_dir: str, output_diff: bool = False
+    input_dir: str, original_dir: str, 
+    copy_to_dir: str,
+    output_diff: bool = False
 ):
     """Compares pom.xml files in 'input' and 'original' directories."""
 
@@ -356,6 +375,11 @@ def compare_pom_files_in_dirs(
                         if pom1 != pom2:
                             different_files += 1
                             diff_files.append(relative_path)
+                            # copy different files to generation input folder.
+                            if relative_path != "gapic-libraries-bom/pom.xml" and relative_path != "pom.xml":
+                                copy_to(from_path=original_file_path, 
+                                        relative_path=relative_path,
+                                        to_dir=copy_to_dir)
                             if output_diff:
                                 print(f"\nPOM Differences in: {relative_path}")
                                 diff_output = generate_pom_diff(pom1, pom2)
@@ -382,7 +406,48 @@ def compare_pom_files_in_dirs(
     print(f"\nTotal files compared: {total_files}")
     print(f"\nTotal different files found: {different_files}")
 
+def copy_to(from_path: str, to_dir: str, relative_path: str) -> bool:
+    """
+    Copies a file from a source path to a destination directory,
+    handling existing files by removing them first.
 
+    Args:
+        from_path: The full path to the file to be copied.
+        to_dir: The destination directory.
+        relative_path: The relative path within the destination directory
+                       where the file should be copied.
+
+    Returns:
+        True if the copy was successful, False otherwise.
+    """
+
+    dest_path = os.path.join(to_dir, relative_path)
+    dest_dir = os.path.dirname(dest_path)
+
+    try:
+        # Ensure the destination directory exists
+        os.makedirs(dest_dir, exist_ok=True)
+
+        # Remove the file if it already exists
+        if os.path.exists(dest_path):
+            os.remove(dest_path)
+
+        # Perform the copy
+        shutil.copy2(from_path, dest_path)
+        return True
+
+    except FileNotFoundError:
+        print(f"Error: Source file not found: {from_path}")
+        return False
+    except PermissionError:
+        print(f"Error: Permission denied when copying to: {dest_path}")
+        return False
+    except OSError as e:
+        print(f"Error: An OS error occurred during file copy: {e}")
+        return False
+    except Exception as e:
+        print(f"Error: An unexpected error occurred: {e}")
+        return False
 # --- Command Line Handling ---
 
 
@@ -393,11 +458,12 @@ def main():
     )
     parser.add_argument("input_dir", help="Path to the 'input' directory.")
     parser.add_argument("original_dir", help="Path to the 'original' directory.")
+    parser.add_argument("copy_to_dir", help="Path to directory to copy differences to.")
     parser.add_argument(
         "-d", "--diff", action="store_true", help="Output file differences."
     )
     args = parser.parse_args()
-    compare_pom_files_in_dirs(args.input_dir, args.original_dir, args.diff)
+    compare_pom_files_in_dirs(args.input_dir, args.original_dir, args.copy_to_dir ,args.diff)
 
 
 if __name__ == "__main__":
