@@ -460,11 +460,12 @@ def main(versions_file, monorepo):
             if (
                 path not in excluded_dependencies_list
                 and path not in main_module.artifact_id
+                and path not in required_dependencies # if already added from existing_modules, respect that one
             ):
                 required_dependencies[path] = module.Module(
                     group_id=__proto_group_id(group_id),
                     artifact_id=path,
-                    version=main_module.version,
+                    version=main_module.version, # correct version already in required_dependencies, but taking main 2.60.0 version again and override
                     release_version=main_module.release_version,
                 )
 
@@ -502,6 +503,7 @@ def main(versions_file, monorepo):
             if (
                 path not in excluded_dependencies_list
                 and path not in main_module.artifact_id
+                and path not in required_dependencies
             ):
                 required_dependencies[path] = module.Module(
                     group_id=__proto_group_id(group_id),
