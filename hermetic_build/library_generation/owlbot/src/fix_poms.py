@@ -523,6 +523,8 @@ def main(versions_file, monorepo):
         if module.artifact_id.startswith("grpc-")
         and module.artifact_id not in parent_artifact_id
     ]
+    # to this point, if all pom.xml missing, then versions are not right (both 2.60.0)
+    # if only java-workflows/pom.xml missinmg, then versions are right (2.60.0 and 0.66.0)
     if main_module in grpc_modules or main_module in proto_modules:
         modules = grpc_modules + proto_modules
     else:

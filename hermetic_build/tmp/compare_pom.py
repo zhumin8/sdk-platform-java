@@ -2,6 +2,7 @@ import os
 import argparse
 import xml.etree.ElementTree as ET
 import difflib
+import re
 import shutil
 from typing import List, Optional, Dict
 
@@ -356,6 +357,7 @@ def compare_pom_files_in_dirs(
     original_dir = os.path.abspath(original_dir)
 
     diff_files = []
+    diff_files_root = []
     total_files = 0
     different_files = 0
 
@@ -380,6 +382,9 @@ def compare_pom_files_in_dirs(
                                 copy_to(from_path=original_file_path, 
                                         relative_path=relative_path,
                                         to_dir=copy_to_dir)
+                            if matches_top_level_pom(relative_path):
+                                # compare dep versions.
+                                diff_files_root.append(relative_path)
                             if output_diff:
                                 print(f"\nPOM Differences in: {relative_path}")
                                 diff_output = generate_pom_diff(pom1, pom2)
@@ -400,11 +405,29 @@ def compare_pom_files_in_dirs(
         print("\nFiles with POM differences (relative to 'input'):")
         for file_path in diff_files:
             print(file_path)
+    if diff_files_root:
+        print("\nRoot pom diffs:")
+        for file_path in diff_files_root:
+            print(file_path)
     else:
         print("No POM differences found.")
 
     print(f"\nTotal files compared: {total_files}")
     print(f"\nTotal different files found: {different_files}")
+
+def matches_top_level_pom(relative_path):
+  """
+  Checks if a relative path matches the pattern "java-*/pom.xml" with no
+  additional subfolders between "java-*" and "pom.xml".
+
+  Args:
+    relative_path: The relative path string to check.
+
+  Returns:
+    True if the path matches the pattern, False otherwise.
+  """
+  pattern = r"^java-[^/]+/pom\.xml$"
+  return bool(re.match(pattern, relative_path))
 
 def copy_to(from_path: str, to_dir: str, relative_path: str) -> bool:
     """
