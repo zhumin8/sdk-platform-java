@@ -47,6 +47,23 @@ RUN git checkout "${GLIB_MUS_SHA}"
 RUN chmod a+x compile-x86_64-alpine-linux.sh
 RUN sh compile-x86_64-alpine-linux.sh
 
+# --- NEW: Go Build Stage ---
+# Use a standard Go image to compile your executable
+FROM golang:1.23 AS go_builder
+
+# Set the working directory inside this build stage
+WORKDIR /app
+
+# Copy your Go source files from the host into the builder stage
+# The first path is relative to your Dockerfile's build context (your project root)
+# The second path is the destination inside the container build stage's WORKDIR (/app)
+COPY hermetic_build/go_cmds/ .
+
+# Build your Go executable
+# -o /app/mycli: Specifies the output path and name for the executable inside the container build stage
+# .: Tells 'go build' to build the main package in the current directory (/app)
+RUN go build -o /app/mycli .
+
 FROM docker.io/library/python:3.13.2-alpine3.20@sha256:816feb29731cdee64b15b0ae91dd9f1cbc36765984ff8ea85a3d90f064417237 as final
 
 ARG OWLBOT_CLI_COMMITTISH=3a68a9c0de318784b3aefadcc502a6521b3f1bc5
@@ -57,7 +74,7 @@ ENV HOME=/home
 ENV OS_ARCHITECTURE="linux-x86_64"
 
 # install OS tools
-RUN apk update && apk add unzip curl rsync openjdk11 jq bash nodejs npm git
+RUN apk update && apk add unzip curl rsync openjdk11 jq bash nodejs npm git maven
 
 SHELL [ "/bin/bash", "-c" ]
 
@@ -82,6 +99,11 @@ COPY --from=glibc-compat /usr/lib/libucontext.so.1 /usr/lib/
 # copy source code
 COPY hermetic_build/common /src/common
 COPY hermetic_build/library_generation /src/library_generation
+# --- NEW: Copy the Go executable from the go_builder stage ---
+# Copy the compiled Go executable from its build stage (/app/mycli)
+# to a standard directory in the final image's PATH (/usr/local/bin)
+COPY --from=go_builder /app/mycli /usr/local/bin/mycli
+# --- End NEW ---
 
 # install protoc
 WORKDIR /protoc
@@ -143,4 +165,10 @@ RUN git config --system user.name "Cloud Java Bot"
 RUN chmod -R a+rw /home
 
 WORKDIR /workspace
-ENTRYPOINT [ "python", "/src/library_generation/cli/entry_point.py", "generate" ]
+# --- MODIFIED: Change the ENTRYPOINT ---
+# Use the compiled Go executable as the new entry point
+ENTRYPOINT [ "/usr/local/bin/mycli" ]
+
+# Optional: Keep or remove the CMD. If kept, 'generate' will be the default command.
+# CMD [ "generate" ]
+# --- End MODIFIED ---

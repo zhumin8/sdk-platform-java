@@ -116,7 +116,7 @@ def _get_target_libraries_from_name(
     target_libraries = set(target_library_names)
     return [
         library
-        for library in config.libraries
+        for library in config.libraries.values()
         if library.get_library_name() in target_libraries
     ]
 
@@ -139,7 +139,7 @@ def _get_target_libraries_from_api_path(
     if not ends_with_version(target_api_path):
         raise ValueError("api_path is not ending with a version is not supported")
     target_libraries = []
-    for library in config.libraries:
+    for library in config.libraries.values():
         target_library = copy.deepcopy(library)
         gapic_config_list = []
         for item in library.gapic_configs:

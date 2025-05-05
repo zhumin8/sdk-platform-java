@@ -59,7 +59,7 @@ def generate_composed_library(
     :return None
     """
     output_folder = repo_config.output_folder
-    owlbot_cli_source_folder = util.sh_util("mktemp -d")
+    owlbot_cli_source_folder = util.sh_util("mktemp -d") # /tmp/tmp.LPkrCr0vjm created, to copy gen results into for postprocessing (owlbot cli)
     os.makedirs(f"{library_path}", exist_ok=True)
     for gapic in library.get_sorted_gapic_configs():
         build_file_folder = Path(f"{output_folder}/{gapic.proto_path}").resolve()

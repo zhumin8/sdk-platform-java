@@ -60,7 +60,7 @@ class GenerationConfig:
         :return: versioned proto_path to library_name mapping
         """
         paths = {}
-        for library in self.libraries:
+        for library in self.libraries.values():
             for gapic_config in library.gapic_configs:
                 paths[gapic_config.proto_path] = library.get_library_name()
         return paths
@@ -71,7 +71,7 @@ class GenerationConfig:
     def contains_common_protos(self) -> bool:
         if self.__contains_common_protos is None:
             self.__contains_common_protos = False
-            for library in self.libraries:
+            for library in self.libraries.values():
                 if library.get_library_name() == COMMON_PROTOS_LIBRARY_NAME:
                     self.__contains_common_protos = True
                     break

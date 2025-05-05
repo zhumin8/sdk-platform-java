@@ -28,12 +28,8 @@ library_generation/**/*.jar
 **/google-java-format.jar
 
 
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
+# Compiled executable
+hermetic_build/go_cmds/utils
 
 # Test binary, built with `go test -c`
 *.test
