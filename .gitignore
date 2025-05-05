@@ -14,10 +14,12 @@ target/
 
 # Vscode Settings
 .vscode/settings.json
+.vscode/launch.json
 
 # Python
 **/__pycache__/
 .venv
+.python-version
 
 # library generation
 **/googleapis

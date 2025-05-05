@@ -40,6 +40,23 @@ func getPythonEntrypointPath() string {
 	return defaultPythonEntrypointScript
 }
 
+// executeAndHandleError is a helper function to run a command's Execute method
+// and handle the error if it occurs by printing to stderr and exiting.
+func executeAndHandleError(
+	commandName string, // Name of the command for error reporting
+	commandToExecute interface{ Execute(args []string) error }, // The command instance implementing the interface
+	argsForCommand []string, // Arguments to pass to the Execute method
+) {
+	// Execute the command's logic
+	if err := commandToExecute.Execute(argsForCommand); err != nil {
+		// If Execute returns an error, print it and exit
+		fmt.Fprintf(os.Stderr, "Error executing command '%s': %v\n", commandName, err)
+		os.Exit(1) // Exit with a non-zero status code to indicate failure
+	}
+	// If Execute returns nil, the function simply returns,
+	// and the main function can proceed to os.Exit(0)
+}
+
 func main() {
 	// Check minimum arguments
 	if len(os.Args) < 2 {
@@ -53,12 +70,16 @@ func main() {
 	argsForCommand := os.Args[2:] // Correctly get arguments *after* the command name
 
 	var commandToExecute Command // Use the Command interface
+	handledInternally := false
 
 	switch commandName {
 	case "clean":
 		commandToExecute = NewCleanCommand()
+		executeAndHandleError(commandName, commandToExecute, argsForCommand)
+
 	case "build-library":
 		commandToExecute = NewBuildLibraryCommand()
+		executeAndHandleError(commandName, commandToExecute, argsForCommand)
 	case "generate":
 		// Execute the Python script for the 'generate' command
 
@@ -92,6 +113,7 @@ func main() {
 				os.Exit(1) // Generic error exit code
 			}
 		}
+		handledInternally = true
 		// If Python script ran successfully, it should exit 0 itself.
 		// No need for os.Exit(0) here as the Go program will simply exit 0.
 
@@ -101,12 +123,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Execute the selected command and check for errors consistently
-	if err := commandToExecute.Execute(argsForCommand); err != nil {
-		fmt.Fprintf(os.Stderr, "Error executing command '%s': %v\n", commandName, err)
-		os.Exit(1)
+	if !handledInternally {
+		os.Exit(0) // Exit with success status
 	}
-
-	// Explicitly exit with success status
-	os.Exit(0)
 }
