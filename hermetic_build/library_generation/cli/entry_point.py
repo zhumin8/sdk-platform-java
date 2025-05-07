@@ -111,6 +111,15 @@ def main(ctx):
     If not specified, the path is the current working directory.
     """,
 )
+@click.option(
+    "--skip-gapic-bom",
+    type=bool,
+    default=False,
+    show_default=True,
+    help="""
+    Set to true to skip generation of gapic and bom modules.
+    """,
+)
 def generate(
     generation_config_path: Optional[str],
     generation_input: Optional[str],
@@ -118,6 +127,7 @@ def generate(
     api_path: Optional[str],
     repository_path: str,
     api_definitions_path: str,
+    skip_gapic_bom: Optional[bool],
 ):
     """
     Generate libraries based on a generation config.
@@ -140,6 +150,7 @@ def generate(
         api_path=api_path,
         repository_path=repository_path,
         api_definitions_path=api_definitions_path,
+        skip_gapic_bom=skip_gapic_bom,
     )
 
 
@@ -150,6 +161,7 @@ def __generate_repo_impl(
     api_path: Optional[str],
     repository_path: str,
     api_definitions_path: str,
+    skip_gapic_bom: Optional[bool],
 ):
     """
     Implementation method for generate().
@@ -189,6 +201,7 @@ def __generate_repo_impl(
         api_definitions_path=api_definitions_path,
         target_library_names=include_library_names,
         target_api_path=api_path,
+        skip_gapic_bom=skip_gapic_bom,
     )
 
 

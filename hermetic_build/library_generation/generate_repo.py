@@ -31,6 +31,7 @@ def generate_from_yaml(
     repository_path: str,
     api_definitions_path: str,
     target_library_names: Optional[list[str]],
+    skip_gapic_bom: Optional[bool],
     target_api_path: Optional[str] = None,
 ) -> None:
     """
@@ -69,9 +70,11 @@ def generate_from_yaml(
     if not config.is_monorepo() or config.contains_common_protos():
         return
 
-    monorepo_postprocessing(
-        repository_path=repository_path, versions_file=repo_config.versions_file
-    )
+    # generates root pom and gapic bom
+    if not skip_gapic_bom:
+        monorepo_postprocessing(
+            repository_path=repository_path, versions_file=repo_config.versions_file
+        )
 
     # cleanup temp output folder
     try:
