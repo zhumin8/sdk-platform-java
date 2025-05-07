@@ -35,7 +35,6 @@ libraries_bom_version=$4
 library_version=$5
 
 if [[ "${is_monorepo}" == "true" ]]; then
-  mkdir temp
   mv owl-bot-staging/* temp
   rm -rf owl-bot-staging/
   mv temp owl-bot-staging
