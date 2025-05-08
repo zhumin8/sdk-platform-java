@@ -30,6 +30,7 @@ def generate_from_yaml(
     config: GenerationConfig,
     repository_path: str,
     api_definitions_path: str,
+    generation_input: Optional[str],
     target_library_names: Optional[list[str]],
     skip_gapic_bom: Optional[bool],
     target_api_path: Optional[str] = None,
@@ -54,7 +55,8 @@ def generate_from_yaml(
         target_api_path=target_api_path,
     )
     repo_config = util.prepare_repo(
-        gen_config=config, library_config=target_libraries, repo_path=repository_path
+        gen_config=config, library_config=target_libraries, repo_path=repository_path,
+        generation_input=generation_input
     )
     # copy api definition to output folder.
     shutil.copytree(api_definitions_path, repo_config.output_folder, dirs_exist_ok=True)

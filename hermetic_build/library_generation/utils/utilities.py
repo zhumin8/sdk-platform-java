@@ -15,8 +15,10 @@ import json
 import sys
 import subprocess
 import os
+import shutil
 from pathlib import Path
 from typing import Any
+from typing import Optional
 
 from common.model.generation_config import GenerationConfig
 from common.model.library_config import LibraryConfig
@@ -125,6 +127,7 @@ def prepare_repo(
     gen_config: GenerationConfig,
     library_config: List[LibraryConfig],
     repo_path: str,
+    generation_input: Optional[str],
     language: str = "java",
 ) -> RepoConfig:
     """
@@ -159,6 +162,8 @@ def prepare_repo(
         json_name = ".repo-metadata.json"
         if os.path.exists(f"{absolute_library_path}/{json_name}"):
             os.remove(f"{absolute_library_path}/{json_name}")
+        # copy .owlbot_hermetic.yaml, etc. from generation-input/ to destination folders
+        copy_all_files_with_copytree(generation_input, repo_path, library_name)
     versions_file = Path(repo_path) / "versions.txt"
     if not versions_file.exists():
         versions_file.touch()
@@ -169,6 +174,41 @@ def prepare_repo(
         versions_file=str(versions_file),
     )
 
+
+def copy_all_files_with_copytree(input_folder, dest_folder, library_name):
+    """
+    Copies an entire directory tree from input_folder/library_name to
+    dest_folder/library_name using shutil.copytree.
+
+    Args:
+        input_folder (str): The path to the base input folder.
+        dest_folder (str): The path to the base destination folder.
+        library_name (str): The name of the subdirectory within input_folder
+                            to copy from and the corresponding subdirectory
+                            to create within dest_folder.
+    """
+    src_dir = os.path.join(input_folder, library_name)
+    dest_dir = os.path.join(dest_folder, library_name)
+
+    if not os.path.exists(src_dir):
+        print(f"Generation input directory not found: {src_dir}")
+        return
+
+    os.makedirs(os.path.dirname(dest_dir), exist_ok=True)
+
+    print(f"Copying entire tree from '{src_dir}' to '{dest_dir}' using shutil.copytree...")
+
+    try:
+        # shutil.copytree will copy the source directory content INTO the destination.
+        # dirs_exist_ok=True allows dest_dir to exist. It will merge the contents,
+        # overwriting files/directories in dest_dir with those from src_dir if names conflict.
+        # copy_function=shutil.copy2 preserves metadata like timestamps.
+        shutil.copytree(src_dir, dest_dir, dirs_exist_ok=True, copy_function=shutil.copy2)
+        print("Copying complete.")
+    except shutil.Error as e:
+        print(f"Error copying directory tree: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
 
 def generate_postprocessing_prerequisite_files(
     config: GenerationConfig,

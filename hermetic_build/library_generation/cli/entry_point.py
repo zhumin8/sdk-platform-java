@@ -114,8 +114,8 @@ def main(ctx):
 @click.option(
     "--skip-gapic-bom",
     type=bool,
-    default=False,
-    show_default=True,
+    default=True,
+    show_default=True, # this default is conflicting with current flow.
     help="""
     Set to true to skip generation of gapic and bom modules.
     """,
@@ -197,6 +197,7 @@ def __generate_repo_impl(
     )
     generate_from_yaml(
         config=generation_config,
+        generation_input=generation_input,
         repository_path=repository_path,
         api_definitions_path=api_definitions_path,
         target_library_names=include_library_names,
