@@ -10,16 +10,20 @@ import (
 // Command interface defines the common methods for all commands.
 type Command interface {
 	Execute(args []string) error
-	// Name() string // Method to get the command name
 	// Usage() // Method to print command usage
 }
 
 // Helper to print usage
 func printUsage() {
-	fmt.Println("Usage: mycli <command> [args]")
+	fmt.Println("Usage: utils <command> [args]")
 	fmt.Println("Commands:")
-	fmt.Println("  clean         Perform cleaning tasks")
-	fmt.Println("  build-library Build the library")
+	fmt.Println("Commands:")
+	fmt.Println("  clean         Perform cleaning tasks (Go)")
+	fmt.Println("  build-library Build the library (Go)")
+	fmt.Println("  prep-input    Prepare input files for library generation (Go). This is intended be removed in the future")
+	fmt.Println("  generate      Generate libraries (Python)")
+	fmt.Println("")
+	fmt.Println("Use 'utils <command> --help' for command-specific options.")
 }
 
 // Define the path to your Python entrypoint script within the Docker image
@@ -80,6 +84,10 @@ func main() {
 	case "build-library":
 		commandToExecute = NewBuildLibraryCommand()
 		executeAndHandleError(commandName, commandToExecute, argsForCommand)
+	case "prep-input":
+		commandToExecute = NewPrepInputCommand()
+		executeAndHandleError(commandName, commandToExecute, argsForCommand)
+
 	case "generate":
 		// Execute the Python script for the 'generate' command
 
@@ -89,6 +97,7 @@ func main() {
 		// os.Args[1:] contains "generate" and all the arguments that came after it on the command line
 		// These are the arguments we want to pass *to* the Python script.
 		argsForPythonScript := os.Args[1:]
+		argsForPythonScript = append(argsForPythonScript, "--skip-gapic-bom=true")
 
 		// The command to execute is "python"
 		// Its arguments start with the script path, followed by the argsForPythonScript slice.
