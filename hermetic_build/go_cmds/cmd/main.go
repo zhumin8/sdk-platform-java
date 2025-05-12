@@ -21,6 +21,7 @@ func printUsage() {
 	fmt.Println("  clean         Perform cleaning tasks (Go)")
 	fmt.Println("  build-library Build the library (Go)")
 	fmt.Println("  prep-input    Prepare input files for library generation (Go). This is intended be removed in the future")
+	fmt.Println("  generate-pipeline-state Generate pipeline state file (Go)")
 	fmt.Println("  generate      Generate libraries (Python)")
 	fmt.Println("")
 	fmt.Println("Use 'utils <command> --help' for command-specific options.")
@@ -86,6 +87,9 @@ func main() {
 		executeAndHandleError(commandName, commandToExecute, argsForCommand)
 	case "prep-input":
 		commandToExecute = NewPrepInputCommand()
+		executeAndHandleError(commandName, commandToExecute, argsForCommand)
+	case "generate-pipeline-state":
+		commandToExecute = NewGeneratePipelineStateCommand()
 		executeAndHandleError(commandName, commandToExecute, argsForCommand)
 
 	case "generate":
